@@ -1,0 +1,56 @@
+local table_find = table.find
+local function getSingleUnitData(unitID)
+    local result = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GetPlayerData"):InvokeServer()
+    if typeof(result) == "table" and result.UnitData and result.UnitData[unitID] then
+        local unit = result.UnitData[unitID]
+        return {
+            Enchant = unit.Enchant,
+            Kills = unit.Kills,
+            Trait = unit.Quirk,
+            Worthiness = unit.Worthiness,
+            Level = unit.Level,
+            Stats = unit.StatInfo,
+            Name = unit.UnitName
+        }
+    end
+end
+
+local function getAllUnitIDS()
+    local args = {
+        [1] = game:GetService("Players").LocalPlayer,
+    }
+    
+    local result = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GetPlayerData"):InvokeServer(unpack(args))
+    
+    local unitIDS = {}
+    for k, v in pairs(result) do
+        if k == "UnitData" then
+            for unitID, unitData in pairs(v) do
+                table.insert(unitIDS, unitID)
+            end
+        end
+    end
+    return unitIDS
+end
+local unitIDS = getAllUnitIDS()
+
+local statRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("RerollStatsFunc")
+local traitRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Quirks"):WaitForChild("Roll")
+local enchantRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Enchants"):WaitForChild("RollEnchant")
+
+task.spawn(function()
+    for _, unitID in ipairs(unitIDS) do
+        local unitData = getSingleUnitData(unitID)
+        if not (unitData and unitData.Enchant) then
+            enchantRemote:InvokeServer(unitID, "Pearl")
+            unitData = getSingleUnitData(unitID)
+        end
+        if unitData and unitData.Enchant then
+            while not (unitData.Enchant == "Mystical") and not (unitData.Name == "AiHoshinoEvo" or unitData.Name == "Yoo Jinho" or unitData.Name == "RobinEvo") do
+                enchantRemote:InvokeServer(unitID, "Pearl", unitData.Enchant or nil)
+                unitData = getSingleUnitData(unitID)
+                task.wait()
+            end
+        end
+    end
+end)
